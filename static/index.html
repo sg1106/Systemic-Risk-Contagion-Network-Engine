@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONTAGION// Systemic Risk Engine</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 12h4l2-7 4 14 3-10 2 3h7' stroke='%23FF5A36' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ════════════════════════ HEADER ════════════════════════ -->
+<header class="topbar">
+  <button class="menu-btn" id="menuBtn" aria-label="Toggle controls">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="brand">
+    <span class="live-dot" id="liveDot"></span>
+    <h1>CONTAGION<span class="brand-slash">//</span></h1>
+    <span class="brand-sub">Systemic Risk Contagion Engine</span>
+  </div>
+  <div class="status-badge" id="statusBadge">
+    <span class="status-label">STATUS</span>
+    <span class="status-value" id="statusValue">AWAITING INPUT</span>
+  </div>
+</header>
+
+<!-- ════════════════════════ SEISMOGRAPH (signature element) ════════════════════════ -->
+<div class="seismo-wrap">
+  <svg id="seismograph" viewBox="0 0 1000 90" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="seismoFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#FF5A36" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#FF5A36" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <g class="seismo-grid" id="seismoGrid"></g>
+    <path id="seismoArea" class="seismo-area" d=""></path>
+    <path id="seismoLine" class="seismo-line" d=""></path>
+  </svg>
+  <div class="seismo-caption">
+    <span id="seismoLabel">SYSTEM STRESS — awaiting simulation</span>
+    <span id="seismoPeak"></span>
+  </div>
+</div>
+
+<!-- ════════════════════════ LAYOUT ════════════════════════ -->
+<div class="layout">
+
+  <!-- ─────────── SIDEBAR ─────────── -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="ctrl-section">
+      <h2 class="eyebrow">01 — Data</h2>
+      <label>Source
+        <select id="dataMode">
+          <option value="sector">Synthetic · Sector-structured</option>
+          <option value="synthetic">Synthetic · Random</option>
+          <option value="real">Real · yfinance (live)</option>
+        </select>
+      </label>
+      <label>Assets <span class="val" id="nAssetsVal">20</span>
+        <input type="range" id="nAssets" min="5" max="40" step="1" value="20">
+      </label>
+      <label>History (days) <span class="val" id="nDaysVal">500</span>
+        <input type="range" id="nDays" min="100" max="1000" step="50" value="500">
+      </label>
+    </div>
+
+    <div class="ctrl-section">
+      <h2 class="eyebrow">02 — Network</h2>
+      <label>Method
+        <select id="networkMethod">
+          <option value="threshold">Threshold</option>
+          <option value="mst">Minimum Spanning Tree</option>
+          <option value="pmfg">PMFG (planar filtered)</option>
+        </select>
+      </label>
+      <label>3D Layout
+        <select id="layoutMethod">
+          <option value="spring">Spring (force-directed)</option>
+          <option value="spectral">Spectral</option>
+          <option value="sphere">Sphere</option>
+          <option value="kamada_kawai">Kamada-Kawai</option>
+        </select>
+      </label>
+      <label>Correlation threshold <span class="val" id="corrThresholdVal">0.30</span>
+        <input type="range" id="corrThreshold" min="0" max="0.99" step="0.01" value="0.30">
+      </label>
+      <label class="toggle-row">
+        <span>Partial correlation view</span>
+        <input type="checkbox" id="partialCorr">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="ctrl-section">
+      <h2 class="eyebrow">03 — Shock Scenario</h2>
+      <label>Scenario type
+        <select id="scenarioType">
+          <option value="single">Single asset</option>
+          <option value="sector">Sector-wide</option>
+          <option value="top_n">Top-N central nodes</option>
+          <option value="random">Random multi-shock</option>
+        </select>
+      </label>
+
+      <label id="shockAssetRow">Shock asset
+        <select id="shockAsset"></select>
+      </label>
+      <label id="shockSectorRow" class="hidden">Shock sector
+        <select id="shockSector"></select>
+      </label>
+      <label id="topNRow" class="hidden">Nodes shocked <span class="val" id="topNVal">3</span>
+        <input type="range" id="topN" min="1" max="10" step="1" value="3">
+      </label>
+
+      <label>Shock magnitude <span class="val" id="shockMagVal">0.50</span>
+        <input type="range" id="shockMag" min="0.01" max="1.0" step="0.01" value="0.50">
+      </label>
+    </div>
+
+    <div class="ctrl-section">
+      <h2 class="eyebrow">04 — Contagion Model</h2>
+      <label>Model
+        <select id="contagionModel">
+          <option value="linear">Linear (DebtRank)</option>
+          <option value="sir">SIR (epidemic)</option>
+          <option value="threshold">Threshold cascade</option>
+          <option value="fitch">Fitch non-linear</option>
+        </select>
+      </label>
+      <label>Simulation steps <span class="val" id="nStepsVal">20</span>
+        <input type="range" id="nSteps" min="1" max="50" step="1" value="20">
+      </label>
+      <label>Decay rate <span class="val" id="decayVal">0.20</span>
+        <input type="range" id="decay" min="0" max="0.99" step="0.01" value="0.20">
+      </label>
+
+      <label id="tauRow" class="hidden">Cascade threshold τ <span class="val" id="tauVal">0.30</span>
+        <input type="range" id="tau" min="0.01" max="1.0" step="0.01" value="0.30">
+      </label>
+      <label id="recoveryRow" class="hidden">Recovery rate <span class="val" id="recoveryVal">0.10</span>
+        <input type="range" id="recovery" min="0.01" max="0.5" step="0.01" value="0.10">
+      </label>
+      <label id="ampRow" class="hidden">Amplification <span class="val" id="ampVal">1.50</span>
+        <input type="range" id="amp" min="1.0" max="3.0" step="0.1" value="1.50">
+      </label>
+    </div>
+
+    <div class="ctrl-section">
+      <h2 class="eyebrow">05 — Display</h2>
+      <label class="toggle-row">
+        <span>Animate propagation</span>
+        <input type="checkbox" id="animate" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <button class="run-btn" id="runBtn">RUN SIMULATION ▸</button>
+    <p class="sidebar-hint" id="sidebarHint">Configure parameters above, then run to simulate contagion.</p>
+  </aside>
+
+  <!-- ─────────── MAIN ─────────── -->
+  <main class="main">
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-panel="network"><span class="tab-num">01</span>Network</button>
+      <button class="tab" data-panel="trajectory"><span class="tab-num">02</span>Timeline</button>
+      <button class="tab" data-panel="heatmap"><span class="tab-num">03</span>Heatmap</button>
+      <button class="tab" data-panel="correlation"><span class="tab-num">04</span>Correlation</button>
+      <button class="tab" data-panel="eigen"><span class="tab-num">05</span>Spectrum</button>
+      <button class="tab" data-panel="risk"><span class="tab-num">06</span>Risk</button>
+      <button class="tab" data-panel="rankings"><span class="tab-num">07</span>Rankings</button>
+    </nav>
+
+    <div class="ticker-strip" id="tickerStrip">
+      <div class="ticker-cell"><span class="ticker-label">Total Stress</span><span class="ticker-value" id="mTotalStress">—</span></div>
+      <div class="ticker-cell"><span class="ticker-label">Max Node</span><span class="ticker-value" id="mMaxStress">—</span></div>
+      <div class="ticker-cell"><span class="ticker-label">Distressed</span><span class="ticker-value" id="mDistressed">—</span></div>
+      <div class="ticker-cell"><span class="ticker-label">Critical</span><span class="ticker-value" id="mCritical">—</span></div>
+      <div class="ticker-cell"><span class="ticker-label">Network SRI</span><span class="ticker-value" id="mSri">—</span></div>
+      <div class="ticker-cell"><span class="ticker-label">Contagion Speed</span><span class="ticker-value" id="mSpeed">—</span></div>
+      <div class="ticker-cell risk-cell"><span class="ticker-label">Risk Level</span><span class="risk-badge" id="riskBadge">—</span></div>
+    </div>
+
+    <div class="shock-banner hidden" id="shockBanner"></div>
+
+    <div class="panels">
+
+      <section class="panel active" data-panel="network">
+        <div class="chart-row">
+          <div id="plot-network" class="plot-main plot-tall"></div>
+          <aside class="side-stats">
+            <h3>Network Stats</h3>
+            <dl id="networkStatsList"></dl>
+            <h3>Communities</h3>
+            <div id="communitiesList" class="communities-list"></div>
+            <h3>Model</h3>
+            <div id="modelInfo" class="model-info"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="trajectory">
+        <div id="plot-trajectory" class="plot-main plot-tall"></div>
+        <p class="info-line" id="peakInfo"></p>
+      </section>
+
+      <section class="panel" data-panel="heatmap">
+        <div id="plot-heatmap" class="plot-main plot-tall"></div>
+        <p class="info-line">Each row = time step · each column = asset · color = stress intensity.</p>
+      </section>
+
+      <section class="panel" data-panel="correlation">
+        <div class="chart-row">
+          <div id="plot-correlation" class="plot-main plot-tall"></div>
+          <aside class="side-stats">
+            <h3 id="corrModeLabel">Full Correlation</h3>
+            <dl id="corrStatsList"></dl>
+            <p class="info-line">Toggle <strong>Partial correlation view</strong> in the sidebar to switch.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="eigen">
+        <div id="plot-eigen" class="plot-main plot-tall"></div>
+        <div class="ticker-strip" id="eigenStats"></div>
+        <p class="info-line">Red bars = genuine market factors (above Marchenko-Pastur noise bound).</p>
+      </section>
+
+      <section class="panel" data-panel="risk">
+        <h3>Return-Based Risk</h3>
+        <div class="ticker-strip" id="returnRiskStats"></div>
+        <h3>Per-Asset Risk (Top 10 by stress)</h3>
+        <div class="table-wrap"><table id="riskTable"></table></div>
+        <details class="json-expander">
+          <summary>Full metrics (raw JSON)</summary>
+          <pre id="metricsJson"></pre>
+        </details>
+      </section>
+
+      <section class="panel" data-panel="rankings">
+        <div id="plot-riskbars" class="plot-main plot-tall"></div>
+        <div class="two-col">
+          <div>
+            <h3>Systemic Importance Ranking</h3>
+            <div class="table-wrap"><table id="rankingTable"></table></div>
+          </div>
+          <div>
+            <h3>Top DebtRank Nodes</h3>
+            <div class="table-wrap"><table id="debtRankTable"></table></div>
+          </div>
+        </div>
+        <h3>Export</h3>
+        <div class="export-row">
+          <button class="export-btn" id="exportStress">⬇ Stress history (CSV)</button>
+          <button class="export-btn" id="exportCorr">⬇ Correlation matrix (CSV)</button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<footer class="footer">
+  CONTAGION// · Models: DebtRank · SIR · Threshold Cascade · Fitch Non-linear ·
+  Topology: Threshold / MST / PMFG · Layout: Spring / Spectral / Sphere / Kamada-Kawai
+</footer>
+
+<!-- ════════════════════════ LOADING OVERLAY ════════════════════════ -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Loading market data…</div>
+  </div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
